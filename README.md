@@ -6,7 +6,7 @@
 
 Simple cv2-based Rutt-Etra video effect.
 
-"""
+```
 usage: rutt-etra.py [-h] [--outfile OUTFILE] [--lines LINES] [--scale SCALE] [--color | --no-color]
                     [--monitor | --no-monitor]
                     infile
@@ -21,6 +21,6 @@ options:
   --scale SCALE
   --color, --no-color
   --monitor, --no-monitor
-"""
+```
 
 If infile is an integer, assumed to be a camera. Output to an AVI file and optionally a monitor window.
