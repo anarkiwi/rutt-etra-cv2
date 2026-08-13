@@ -50,6 +50,42 @@ needs 19680 points — five times too many. Either raise the rate or cut the ras
   jumps between lines are visibly streaking.
 - `--audio-bits 24` gives finer deflection steps than 16-bit if your interface takes it.
 
+## Simulated scope
+
+`rutt-scope.py` renders a deflection WAV as a monochrome XY scope, so you can see the
+result without hardware. It reuses the raster's beam kernel, so brightness falls with
+beam speed exactly as it does on a real tube, then adds spot size, bloom and phosphor
+decay.
+
+```sh
+./rutt-scope.py scope.wav --outfile scope-view.avi --fps 23.976 \
+  --scope-size 494 --scope-aspect 1.449 --scope-gain 8 \
+  --scope-persistence 0.6 --scope-spot 0.7 --scope-bloom 0.25
+```
+
+The same view can be produced in one pass, straight from the deflection signals:
+
+```sh
+./rutt-etra.py clip.mp4 --scope-out scope-view.avi --no-video --no-monitor \
+  --audio-rate 192000 --lines 48 --samples 152 --beam speed
+```
+
+| Control | |
+|---|---|
+| `--scope-size` / `--scope-aspect` | screen height, and width divided by height (1.0 = square, as a scope is) |
+| `--scope-gain` | trace brightness |
+| `--scope-spot` / `--scope-bloom` | beam spot sigma, and the halo around it |
+| `--scope-persistence` | phosphor decay per frame, 0 to just under 1 |
+| `--scope-z` / `--no-scope-z` | use channel 3 as beam current, or run flat out |
+| `--scope-graticule` | overlay the 8 x 10 division grid |
+
+**`--scope-gain` needs setting per configuration, and that is not a bug.** Each sample
+deposits one beam period's worth of energy however far it travels, so brightness
+depends on how many samples land per screen pixel. Doubling `--scope-size` at a fixed
+sample rate spreads the same energy over four times the area. Turning `--no-scope-z`
+on also brightens everything, because the picture is no longer modulating the beam —
+and it reveals the flat undisplaced raster behind the trace.
+
 ## Sound card caveats
 
 Audio outputs are **AC coupled**. Constant deflection decays toward centre, so large

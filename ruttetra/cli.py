@@ -12,6 +12,7 @@ from .audio import (
     samples_per_frame,
     signals_from_path,
 )
+from . import scope
 from .core import BEAM_MODES, LUMA_COEFFS, SAMPLING, ScanParams, beam_path
 from .raster import render_path
 
@@ -75,6 +76,12 @@ def build_parser():
     )
     audio.add_argument("--audio-bits", default=16, type=int, choices=(16, 24))
     audio.add_argument("--z-invert", action=flag, default=False)
+
+    simulated = parser.add_argument_group("simulated oscilloscope")
+    simulated.add_argument(
+        "--scope-out", default=None, type=str, help="render a scope view to this file"
+    )
+    scope.add_arguments(simulated)
     return parser
 
 
@@ -134,9 +141,11 @@ def warn_undersampled(block, points):
     )
 
 
-def open_sinks(args, audio):
-    """Audio sinks requested on the command line."""
+def open_sinks(args, audio, fps):
+    """Deflection sinks requested on the command line."""
     sinks = []
+    if args.scope_out:
+        sinks.append(scope.ScopeSink(args.scope_out, scope.params_from(args), fps))
     if args.wav:
         sinks.append(WavSink(args.wav, audio))
     if args.audio_device is not None:
@@ -177,7 +186,7 @@ def process(cap, args, out_stream=sys.stdout):
     )
     fps = source_fps(cap, args.fps)
     block = samples_per_frame(audio.rate, fps)
-    sinks = open_sinks(args, audio)
+    sinks = open_sinks(args, audio, fps)
     writer, frames = None, 0
 
     try:

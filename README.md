@@ -22,10 +22,15 @@ pip install sounddevice   # optional, only for live sound card output
 ./rutt-etra.py 0 --lines 90 --scale 0.4                     # webcam
 ./rutt-etra.py input.mp4 --no-video --wav scope.wav \
   --audio-rate 192000 --lines 48 --samples 152 --beam speed # oscilloscope
+./rutt-scope.py scope.wav --outfile scope-view.avi          # simulate a scope
 ```
 
 `--outfile` sets the video path, `--wav` the audio path, `--audio-device` streams to a
-sound card. Any combination can run at once.
+sound card, `--scope-out` renders the simulated scope. Any combination can run at once.
+
+`rutt-scope.py` renders a deflection WAV as a monochrome XY oscilloscope, reusing the
+same beam kernel as the raster so brightness falls with beam speed as it does on a
+real tube, then adding spot size, bloom and phosphor decay.
 
 ## Options
 
@@ -52,6 +57,10 @@ sound card. Any combination can run at once.
 | `--wav` / `--audio-device` | file or sound card |
 | `--audio-rate` / `--audio-channels` / `--audio-bits` | 96000, 2 (XY) or 3 (XYZ), 16 or 24 |
 | `--z-invert` | for scopes whose blanking is active high |
+| `--scope-out` | render a simulated scope view to this file |
+| `--scope-size` / `--scope-aspect` | screen height, width / height (1.0 = square) |
+| `--scope-gain` / `--scope-spot` / `--scope-bloom` | brightness, beam spot, halo |
+| `--scope-persistence` / `--scope-z` / `--scope-graticule` | phosphor decay, Z channel, grid |
 
 ## Docs
 
@@ -64,7 +73,7 @@ sound card. Any combination can run at once.
 
 ```sh
 pip install -r requirements-dev.txt
-pytest                        # 113 tests, coverage gate at 85%
+pytest                        # 149 tests, coverage gate at 85%
 black --check . && pylint ruttetra tests
 docker build -t ruttetra-test . && docker run --rm ruttetra-test
 ```

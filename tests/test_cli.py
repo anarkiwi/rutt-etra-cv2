@@ -266,3 +266,36 @@ def test_no_warning_when_the_clock_is_fast_enough(clip):
     finally:
         cap.release()
     assert "warning:" not in stream.getvalue()
+
+
+def test_scope_out_renders_alongside(tmp_path, clip):
+    """The simulated scope is just another sink on the same pass."""
+    video, scope_video = tmp_path / "out.avi", tmp_path / "scope.avi"
+    assert (
+        cli.main(
+            [
+                str(clip),
+                "--outfile",
+                str(video),
+                "--scope-out",
+                str(scope_video),
+                "--scope-size",
+                "48",
+                "--no-monitor",
+                "--lines",
+                "4",
+                "--samples",
+                "8",
+                "--audio-rate",
+                "48000",
+                "--fps",
+                "25",
+            ]
+        )
+        == 0
+    )
+    cap = cv2.VideoCapture(str(scope_video))
+    ok, frame = cap.read()
+    cap.release()
+    assert ok and frame.shape == (48, 48, 3)
+    assert video.stat().st_size > 0

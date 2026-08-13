@@ -27,7 +27,7 @@ def _visible(x0, y0, dx, dy, width, height):
 
 
 @njit(cache=True, fastmath=True, nogil=True)
-def _trace(acc, px, py, pz, pc, per_length):
+def draw_segments(acc, px, py, pz, pc, per_length):
     """Accumulate antialiased beam segments into a float32 BGR canvas."""
     height, width = acc.shape[0], acc.shape[1]
     for i in range(px.size - 1):
@@ -91,7 +91,7 @@ def accumulate(path, height, width, params):
     out_h, out_w = canvas_shape(height, width, params)
     px, py = to_pixels(path, height, width, params)
     acc = np.zeros((out_h, out_w, 3), dtype=np.float32)
-    return _trace(acc, px, py, path.z, path.color, params.beam == "speed")
+    return draw_segments(acc, px, py, path.z, path.color, params.beam == "speed")
 
 
 def render_path(path, height, width, params, exposure=1.0):
