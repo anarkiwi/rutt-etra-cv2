@@ -222,6 +222,29 @@ def open_writer(args, image, fps, out_stream):
     )
 
 
+def feed_audio(sinks, path, params, audio, block, first, out_stream):
+    """Resample a beam path and hand it to every deflection sink."""
+    if not sinks:
+        return
+    if first and block < len(path):
+        print(warn_undersampled(block, len(path)), file=out_stream)
+    signals = signals_from_path(path, params, audio, block)
+    for sink in sinks:
+        sink.write(signals)
+
+
+def feed_laser(sinks, path, projector_dac, fps, first, out_stream):
+    """Fit a beam path to the projector budget and hand it to every sink."""
+    if not sinks:
+        return
+    projector, dac = projector_dac
+    shot = laser.frame_points(path, projector, dac, fps)
+    if first:
+        print(laser.describe(projector, dac, fps, shot[0].shape[0]), file=out_stream)
+    for sink in sinks:
+        sink.write(*shot)
+
+
 def process(cap, args, out_stream=sys.stdout):
     """Run the capture through the scan processor into every requested sink."""
     fps = source_fps(cap, args.fps)
@@ -248,21 +271,8 @@ def process(cap, args, out_stream=sys.stdout):
                 break
             height, width = frame.shape[:2]
             path = beam_path(frame, params)
-            if sinks:
-                if frames == 0 and block < len(path):
-                    print(warn_undersampled(block, len(path)), file=out_stream)
-                signals = signals_from_path(path, params, audio, block)
-                for sink in sinks:
-                    sink.write(signals)
-            if beam_sinks:
-                shot = laser.frame_points(path, projector, dac, fps)
-                if frames == 0:
-                    print(
-                        laser.describe(projector, dac, fps, shot[0].shape[0]),
-                        file=out_stream,
-                    )
-                for sink in beam_sinks:
-                    sink.write(*shot)
+            feed_audio(sinks, path, params, audio, block, frames == 0, out_stream)
+            feed_laser(beam_sinks, path, (projector, dac), fps, frames == 0, out_stream)
             image = preview(args, params, path, (height, width))
             if args.video and image is not None:
                 writer = writer or open_writer(args, image, fps, out_stream)
