@@ -1,7 +1,8 @@
 # rutt-etra-cv2
 
 Rutt/Etra scan processor. Displaces each scan line vertically by video luminance and
-renders the result as video, as oscilloscope XY(Z) audio, or both from one pass.
+renders the result as video, as oscilloscope XY(Z) audio, or as laser projector points
+(ILDA file or Helios DAC) - any combination from one pass.
 
 The device is an XY vector display, so the core model produces deflection signals
 rather than pixels. Video and audio are two renderings of the same beam path.
@@ -21,6 +22,10 @@ Every panel below is the same source clip, `docs/media/vector-test.mp4`, scanned
 |---|---|---|
 | ![monochrome](docs/media/raster-mono.png) | ![scope XY](docs/media/scope-xy.png) | ![scope XYZ](docs/media/scope-xyz.png) |
 | monochrome raster, as the B&W display unit actually was | simulated scope, X/Y only: with no Z the beam runs flat out and the undisplaced raster shows behind the shape | simulated scope, X/Y/Z: the third channel modulates beam current, so only the picture is lit |
+
+| `--laser-out` | |
+|---|---|
+| ![simulated laser](docs/media/laser.png) | a 30K projector on a Helios DAC at 24 fps gets 1250 points a frame, so the raster drops to 24 x 34. The hooks at the end of each line are the galvanometers overshooting; the bright dots are dwell points where the beam is held still. Colour is white balanced, which on a blue heavy projector means red at full drive and blue at a fifth. |
 
 Both scope panels are rendered by `rutt-scope.py` from a real 192 kHz WAV, not from
 the frames — the deflection signal is the only thing passed between them.
@@ -49,10 +54,14 @@ docker run --rm -v "$PWD:/data" anarkiwi/rutt-etra-cv2 \
 ./rutt-etra.py input.mp4 --no-video --wav scope.wav \
   --audio-rate 192000 --lines 48 --samples 152 --beam speed # oscilloscope
 ./rutt-scope.py scope.wav --outfile scope-view.avi          # simulate a scope
+./rutt-etra.py input.mp4 --no-video --fit-scan \
+  --ild-out show.ild --laser-out laser.avi                  # laser
+./rutt-laser.py show.ild --outfile laser.avi                # simulate a projector
 ```
 
 `--outfile` sets the video path, `--wav` the audio path, `--audio-device` streams to a
-sound card, `--scope-out` renders the simulated scope. Any combination can run at once.
+sound card, `--scope-out` and `--laser-out` render simulations, `--ild-out` writes an
+ILDA file and `--helios` drives a DAC. Any combination can run at once.
 
 `rutt-scope.py` renders a deflection WAV as a monochrome XY oscilloscope, reusing the
 same beam kernel as the raster so brightness falls with beam speed as it does on a
@@ -88,19 +97,30 @@ real tube, then adding spot size, bloom and phosphor decay.
 | `--scope-gain` / `--scope-spot` / `--scope-bloom` | brightness, beam spot, halo |
 | `--scope-persistence` / `--scope-z` / `--scope-graticule` | phosphor decay, Z channel, grid |
 
+| Laser | |
+|---|---|
+| `--ild-out` / `--laser-out` / `--helios` | ILDA file, simulated projection, live DAC |
+| `--fit-scan` | size the raster to what the projector can draw |
+| `--kpps` / `--scan-angle` / `--galvo-hz` / `--damping` | scanner rating and dynamics |
+| `--laser-power` / `--wavelengths` / `--calibrate` | mW and nm per channel, white balance |
+| `--dwell` / `--blank-delay` / `--blank-points` | settling points, blank travel |
+| `--dac-points` / `--dac-rate` / `--dac-bits` | DAC limits, Helios by default |
+
 ## Docs
 
 - [docs/algorithm.md](docs/algorithm.md) — the signal model, its sources, and how
   faithful it is to the RE4 hardware
 - [docs/oscilloscope.md](docs/oscilloscope.md) — channel map, sample budget, sound
   card caveats
+- [docs/laser.md](docs/laser.md) — point budgets, galvo dynamics, colour, driving a
+  Helios DAC
 - [docs/release.md](docs/release.md) — publishing the Docker image
 
 ## Develop
 
 ```sh
 pip install -r requirements-dev.txt
-pytest                        # 149 tests, coverage gate at 85%
+pytest                        # 220 tests, coverage gate at 85%
 black --check . && pylint ruttetra tests
 docker build -t ruttetra-test . && docker run --rm ruttetra-test
 ```

@@ -18,9 +18,10 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 
 # pylint: disable=wrong-import-position
 from ruttetra.audio import AudioParams, WavSink, frame_signals  # noqa: E402
-from ruttetra.core import ScanParams  # noqa: E402
+from ruttetra.core import ScanParams, beam_path  # noqa: E402
 from ruttetra.raster import render  # noqa: E402
 from ruttetra.scope import ScopeParams, render_wav  # noqa: E402
+from ruttetra import laser  # noqa: E402
 
 WIDTH, HEIGHT, FRAMES, FPS = 256, 192, 36, 24.0
 SCAN = {"lines": 48, "samples": 152, "gain": 0.35}
@@ -94,6 +95,19 @@ def scope_frames(frames, channels, params, scope_params, workdir):
     return list(render_wav(wav, FPS, scope_params))
 
 
+def laser_frames(frames):
+    """Route frames through a projector budget and simulate the projection."""
+    projector, dac = laser.Projector(kpps=30000), laser.Dac()
+    lines, samples = laser.fit_scan(projector, dac, FPS, retrace=4)
+    params = ScanParams(lines=lines, samples=samples, gain=SCAN["gain"], retrace=4)
+    screen = laser.PreviewParams(size=259, aspect=256 / 259, gain=5.0, spot=1.0)
+    out = []
+    for frame in frames:
+        shot = laser.frame_points(beam_path(frame, params), projector, dac, FPS)
+        out.append(laser.preview(*shot, projector, screen))
+    return out
+
+
 def main():
     """Build every asset."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -129,6 +143,7 @@ def main():
                 source, 2, speed, dataclasses.replace(screen, z=False), work
             ),
             "scope-xyz": scope_frames(source, 3, speed, screen, work),
+            "laser": laser_frames(source),
         }
 
     for name, frames in assets.items():

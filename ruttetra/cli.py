@@ -12,7 +12,7 @@ from .audio import (
     samples_per_frame,
     signals_from_path,
 )
-from . import scope
+from . import laser, scope
 from .core import BEAM_MODES, LUMA_COEFFS, SAMPLING, ScanParams, beam_path
 from .raster import render_path
 
@@ -76,6 +76,24 @@ def build_parser():
     )
     audio.add_argument("--audio-bits", default=16, type=int, choices=(16, 24))
     audio.add_argument("--z-invert", action=flag, default=False)
+
+    projector = parser.add_argument_group("laser projector")
+    projector.add_argument("--ild-out", default=None, type=str, help="write ILDA file")
+    projector.add_argument(
+        "--laser-out", default=None, type=str, help="render a simulated projection"
+    )
+    projector.add_argument("--helios", action=flag, default=False, help="drive a DAC")
+    projector.add_argument("--helios-device", default=0, type=int)
+    projector.add_argument("--helios-library", default=None, type=str)
+    projector.add_argument("--laser-size", default=480, type=int)
+    projector.add_argument("--laser-gain", default=1.0, type=float)
+    projector.add_argument(
+        "--galvo", action=flag, default=True, help="model scanner dynamics"
+    )
+    projector.add_argument(
+        "--fit-scan", action=flag, default=False, help="size the raster to the budget"
+    )
+    laser.add_arguments(projector)
 
     simulated = parser.add_argument_group("simulated oscilloscope")
     simulated.add_argument(
@@ -141,6 +159,35 @@ def warn_undersampled(block, points):
     )
 
 
+def open_laser_sinks(args, fps, aspect):
+    """Projector sinks requested on the command line."""
+    projector, dac = laser.params_from(args)
+    sinks = []
+    if args.ild_out:
+        sinks.append(laser.IldSink(args.ild_out))
+    if args.laser_out:
+        sinks.append(
+            laser.PreviewSink(
+                args.laser_out,
+                projector,
+                laser.PreviewParams(
+                    size=args.laser_size,
+                    aspect=aspect,
+                    gain=args.laser_gain,
+                    show_galvo=args.galvo,
+                ),
+                fps,
+            )
+        )
+    if args.helios:
+        from . import helios  # pylint: disable=import-outside-toplevel
+
+        sinks.append(
+            helios.HeliosSink(projector, args.helios_device, args.helios_library)
+        )
+    return projector, dac, sinks
+
+
 def open_sinks(args, audio, fps):
     """Deflection sinks requested on the command line."""
     sinks = []
@@ -177,6 +224,11 @@ def open_writer(args, image, fps, out_stream):
 
 def process(cap, args, out_stream=sys.stdout):
     """Run the capture through the scan processor into every requested sink."""
+    fps = source_fps(cap, args.fps)
+    if args.fit_scan:
+        args.lines, args.samples = laser.fit_scan(
+            *laser.params_from(args), fps, retrace=args.retrace
+        )
     params = scan_params(args)
     audio = AudioParams(
         rate=args.audio_rate,
@@ -184,9 +236,9 @@ def process(cap, args, out_stream=sys.stdout):
         bits=args.audio_bits,
         z_invert=args.z_invert,
     )
-    fps = source_fps(cap, args.fps)
     block = samples_per_frame(audio.rate, fps)
     sinks = open_sinks(args, audio, fps)
+    projector, dac, beam_sinks = open_laser_sinks(args, fps, 1.0)
     writer, frames = None, 0
 
     try:
@@ -202,6 +254,15 @@ def process(cap, args, out_stream=sys.stdout):
                 signals = signals_from_path(path, params, audio, block)
                 for sink in sinks:
                     sink.write(signals)
+            if beam_sinks:
+                shot = laser.frame_points(path, projector, dac, fps)
+                if frames == 0:
+                    print(
+                        laser.describe(projector, dac, fps, shot[0].shape[0]),
+                        file=out_stream,
+                    )
+                for sink in beam_sinks:
+                    sink.write(*shot)
             image = preview(args, params, path, (height, width))
             if args.video and image is not None:
                 writer = writer or open_writer(args, image, fps, out_stream)
@@ -210,7 +271,7 @@ def process(cap, args, out_stream=sys.stdout):
     except KeyboardInterrupt:
         pass
     finally:
-        for sink in sinks:
+        for sink in sinks + beam_sinks:
             sink.close()
         if writer is not None:
             writer.release()
