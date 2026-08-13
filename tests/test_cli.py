@@ -299,3 +299,46 @@ def test_scope_out_renders_alongside(tmp_path, clip):
     cap.release()
     assert ok and frame.shape == (48, 48, 3)
     assert video.stat().st_size > 0
+
+
+def test_laser_sinks_render_alongside(tmp_path, clip):
+    """ILDA and the simulated projection are sinks on the same pass."""
+    ild, laser_video = tmp_path / "out.ild", tmp_path / "laser.avi"
+    assert (
+        cli.main(
+            [
+                str(clip),
+                "--no-video",
+                "--no-monitor",
+                "--ild-out",
+                str(ild),
+                "--laser-out",
+                str(laser_video),
+                "--laser-size",
+                "48",
+                "--fit-scan",
+                "--fps",
+                "25",
+            ]
+        )
+        == 0
+    )
+    from ruttetra import ilda  # pylint: disable=import-outside-toplevel
+
+    frames = ilda.read(ild)
+    assert len(frames) == 4
+    assert laser_video.stat().st_size > 0
+
+
+def test_fit_scan_sizes_the_raster(clip):
+    """Fitting picks a raster the projector can actually draw."""
+    args = parse()
+    args.infile, args.video, args.monitor = str(clip), False, False
+    args.fit_scan, args.kpps, args.fps = True, 30000, 25.0
+    args.ild_out = None
+    cap = cli.open_capture(str(clip))
+    try:
+        cli.process(cap, args, out_stream=io.StringIO())
+    finally:
+        cap.release()
+    assert args.lines * (args.samples + args.retrace) <= 1200

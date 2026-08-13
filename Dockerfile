@@ -16,7 +16,7 @@ ENV PATH=/opt/venv/bin:$PATH \
     NUMBA_CACHE_DIR=/tmp/numba_cache \
     PYTHONDONTWRITEBYTECODE=1
 WORKDIR /app
-COPY pyproject.toml rutt-etra.py rutt-scope.py ./
+COPY pyproject.toml rutt-etra.py rutt-scope.py rutt-laser.py ./
 COPY ruttetra ./ruttetra
 COPY tests ./tests
 COPY tools ./tools
@@ -28,7 +28,7 @@ ENV PATH=/opt/venv/bin:$PATH \
     NUMBA_CACHE_DIR=/tmp/numba_cache \
     PYTHONDONTWRITEBYTECODE=1
 WORKDIR /app
-COPY pyproject.toml rutt-etra.py rutt-scope.py ./
+COPY pyproject.toml rutt-etra.py rutt-scope.py rutt-laser.py ./
 COPY ruttetra ./ruttetra
 ENTRYPOINT ["python"]
 CMD ["rutt-etra.py", "--help"]
