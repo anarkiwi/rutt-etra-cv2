@@ -92,15 +92,19 @@ def test_no_video_still_counts_frames(wavfile):
     assert scopecli.process(args, out_stream=io.StringIO()) == 3
 
 
-def test_missing_file_reports_failure(capsys, tmp_path):
-    """An unreadable WAV exits non-zero rather than raising."""
+def test_missing_file_reports_failure(capsys, tmp_path, monkeypatch):
+    """An unreadable WAV exits non-zero and leaves no output file behind."""
+    monkeypatch.chdir(tmp_path)
     assert scopecli.main([str(tmp_path / "nope.wav")]) == 1
     assert "cannot read" in capsys.readouterr().err
+    assert not (tmp_path / "scope.avi").exists()
 
 
-def test_not_a_wav_reports_failure(capsys, tmp_path):
-    """A file that is not a WAV is refused."""
+def test_not_a_wav_reports_failure(capsys, tmp_path, monkeypatch):
+    """A file that is not a WAV is refused, without creating an output."""
+    monkeypatch.chdir(tmp_path)
     junk = tmp_path / "junk.wav"
     junk.write_bytes(b"not a riff header at all")
     assert scopecli.main([str(junk)]) == 1
     assert "cannot read" in capsys.readouterr().err
+    assert not (tmp_path / "scope.avi").exists()

@@ -6,7 +6,7 @@ __pycache__/
 .coverage.*
 htmlcov/
 .numba_cache/
-output.avi
+*.avi
 *.wav
 build/
 dist/

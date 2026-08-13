@@ -27,12 +27,18 @@ def build_parser():
 
 def process(args, out_stream=sys.stdout):
     """Render every frame's worth of the WAV, returning the frame count."""
+    # Read one block first, so an unreadable WAV leaves no empty video behind.
+    blocks = scope.wav_blocks(args.wavfile, args.fps)
+    first = next(blocks, None)
+    if first is None:
+        return 0
     path = args.outfile if args.video else None
     sink = scope.ScopeSink(path, scope.params_from(args), args.fps, args.monitor)
     if path:
         print(f"opened {path} for writing", file=out_stream)
     try:
-        for block in scope.wav_blocks(args.wavfile, args.fps):
+        sink.write(first)
+        for block in blocks:
             sink.write(block)
     except KeyboardInterrupt:
         pass
