@@ -34,6 +34,13 @@ pip install -r requirements.txt
 pip install sounddevice   # optional, only for live sound card output
 ```
 
+Or from Docker Hub, where the first argument picks the tool:
+
+```sh
+docker run --rm -v "$PWD:/data" anarkiwi/rutt-etra-cv2 \
+  rutt-etra.py /data/in.mp4 --no-monitor --outfile /data/out.avi
+```
+
 ## Use
 
 ```sh
@@ -87,6 +94,7 @@ real tube, then adding spot size, bloom and phosphor decay.
   faithful it is to the RE4 hardware
 - [docs/oscilloscope.md](docs/oscilloscope.md) — channel map, sample budget, sound
   card caveats
+- [docs/release.md](docs/release.md) — publishing the Docker image
 
 ## Develop
 

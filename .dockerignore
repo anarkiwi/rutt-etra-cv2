@@ -14,3 +14,4 @@ build
 dist
 *.egg-info
 screenshot.png
+docs
