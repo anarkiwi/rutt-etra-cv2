@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rutt-etra-cv2"
+version = "0.2.0"
+description = "Rutt/Etra scan processor for video and oscilloscope output"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+readme = "README.md"
+dependencies = [
+    "opencv-python",
+    "numpy",
+    "numba",
+]
+
+[project.optional-dependencies]
+soundcard = ["sounddevice"]
+dev = [
+    "pytest",
+    "pytest-xdist",
+    "pytest-cov",
+    "black",
+    "pylint",
+]
+
+[tool.setuptools]
+packages = ["ruttetra"]
+
+[tool.pytest.ini_options]
+addopts = "-n auto --maxprocesses=8 --cov=ruttetra --cov-report=term-missing --cov-fail-under=85"
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
+
+[tool.pylint.main]
+jobs = 0
+init-hook = 'import sys; sys.path.insert(0, ".")'
+extension-pkg-allow-list = ["cv2"]
+
+[tool.pylint.typecheck]
+generated-members = ["cv2\\..*"]
+
+[tool.pylint.design]
+max-attributes = 20
+max-args = 8
+max-positional-arguments = 8
+max-locals = 35
+
+[tool.pylint.basic]
+good-names = [
+    "_", "j", "k", "ex",
+    "x", "y", "z", "i", "c",
+    "dx", "dy", "x0", "y0", "x1", "y1",
+    "ix", "iy", "tx", "ty", "ox", "oy", "fx", "fy",
+]
+
+[tool.pylint."messages control"]
+disable = [
+    "duplicate-code",
+    "too-few-public-methods",
+]

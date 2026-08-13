@@ -1,0 +1,6 @@
+pytest
+pytest-xdist
+pytest-cov
+black
+pylint
+pillow
