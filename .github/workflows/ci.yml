@@ -15,7 +15,7 @@ jobs:
           grep -v '^opencv-python$' requirements.txt > requirements-headless.txt
           pip install opencv-python-headless -r requirements-headless.txt -r requirements-dev.txt
       - run: black --check .
-      - run: pylint ruttetra tests
+      - run: pylint ruttetra tests tools
 
   test:
     runs-on: ubuntu-latest
