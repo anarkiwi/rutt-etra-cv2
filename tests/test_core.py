@@ -172,6 +172,17 @@ def test_smooth_limits_deflection_bandwidth(step):
     assert soft.mean() == pytest.approx(sharp.mean(), abs=0.02)
 
 
+def test_smooth_does_not_blur_across_lines():
+    """The amplifier rolls off along a line; it cannot smear one into the next."""
+    frame = np.zeros((3, 33, 3), dtype=np.uint8)
+    frame[1, 16] = 255
+    flat = deflection(frame, ScanParams(lines=3, gain=0.0))[1]
+    soft = deflection(frame, ScanParams(lines=3, gain=0.4, smooth=2.0))[1]
+    assert np.allclose(soft[0], flat[0])
+    assert np.allclose(soft[2], flat[2])
+    assert np.count_nonzero(soft[1] - flat[1]) > 1
+
+
 def test_nearest_sampling_aliases(noise):
     """Nearest sampling decimates lines the way alternate-line switching did."""
     rows = scan_lines(noise, 4, sampling="nearest")

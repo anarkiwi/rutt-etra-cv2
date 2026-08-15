@@ -115,12 +115,15 @@ def scan_lines(frame, lines, samples=0, sampling="area"):
 
 
 def _bandwidth_limit(signal, smooth):
-    """Roll off the deflection signal along each line."""
+    """Roll off the deflection signal along each line.
+
+    The kernel height is pinned to 1: lines are swept independently, so the
+    amplifier cannot smear one into the next. OpenCV reads sigmaY=0 as "same
+    as sigmaX", which would blur across lines as well as along them.
+    """
     if smooth <= 0:
         return signal
-    return cv2.GaussianBlur(signal, (0, 0), sigmaX=smooth, sigmaY=0).reshape(
-        signal.shape
-    )
+    return cv2.GaussianBlur(signal, (0, 1), sigmaX=smooth).reshape(signal.shape)
 
 
 def deflection(frame, params):
