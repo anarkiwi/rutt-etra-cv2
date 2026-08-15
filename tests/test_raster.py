@@ -5,7 +5,14 @@ import numpy as np
 import pytest
 
 from ruttetra.core import BeamPath, ScanParams, beam_path
-from ruttetra.raster import accumulate, canvas_shape, render, render_path, to_pixels
+from ruttetra.raster import (
+    accumulate,
+    canvas_shape,
+    draw_segments,
+    render,
+    render_path,
+    to_pixels,
+)
 
 
 def lit_mask(image):
@@ -156,6 +163,31 @@ def test_mono_trace_is_grey():
     red[:, :, 2] = 255
     image = render(red, ScanParams(lines=4, gain=0.1, mono=True))
     assert np.array_equal(image[..., 0], image[..., 2])
+
+
+def segment_ink(dx, dy, per_length):
+    """Total ink one beam segment lays down on an otherwise blank canvas."""
+    acc = np.zeros((256, 256, 3), dtype=np.float32)
+    px = np.array([64.0, 64.0 + dx], dtype=np.float32)
+    py = np.array([64.0, 64.0 + dy], dtype=np.float32)
+    lit = np.ones(2, dtype=np.float32)
+    draw_segments(acc, px, py, lit, np.ones((2, 3), dtype=np.float32), per_length)
+    return float(acc[..., 0].sum())
+
+
+def test_constant_speed_ink_tracks_arc_length():
+    """Equal-length segments write equal ink whatever angle they run at."""
+    diagonal = 100.0 / np.sqrt(2.0)
+    flat = segment_ink(100.0, 0.0, True)
+    assert flat == pytest.approx(100.0, rel=0.02)
+    assert segment_ink(diagonal, diagonal, True) == pytest.approx(flat, rel=0.02)
+    assert segment_ink(0.0, 100.0, True) == pytest.approx(flat, rel=0.02)
+
+
+def test_constant_rate_ink_is_one_beam_period_per_segment():
+    """Constant-rate segments write the same ink however far they travel."""
+    for dx, dy in ((100.0, 0.0), (70.71, 70.71), (0.0, 100.0), (3.0, 4.0)):
+        assert segment_ink(dx, dy, False) == pytest.approx(1.0, rel=0.02)
 
 
 def test_out_of_canvas_beam_is_clipped():

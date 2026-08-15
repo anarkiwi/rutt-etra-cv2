@@ -38,7 +38,8 @@ def draw_segments(acc, px, py, pz, pc, per_length):
         dx, dy = np.float64(px[i + 1]) - x0, np.float64(py[i + 1]) - y0
         if not (np.isfinite(x0) and np.isfinite(y0) and np.isfinite(dx + dy)):
             continue
-        span = max(abs(dx), abs(dy))
+        # Arc length, as in core.beam_clock, so both renderings agree.
+        span = np.hypot(dx, dy)
         steps = max(1, int(np.ceil(min(span, 1e7))))
         # One beam period per segment however far it travels: long segments fainter.
         amp = 1.0 if per_length else 1.0 / steps
