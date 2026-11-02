@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "rutt-etra-cv2"
 version = "0.2.0"
 description = "Rutt/Etra scan processor for video and oscilloscope output"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 readme = "README.md"
@@ -36,7 +36,7 @@ pythonpath = ["."]
 
 [tool.black]
 line-length = 88
-target-version = ["py311"]
+target-version = ["py312"]
 
 [tool.pylint.main]
 jobs = 0
