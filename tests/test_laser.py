@@ -208,7 +208,7 @@ def test_white_balance_pins_the_scarcest_channel():
     """Red is the limiter on a typical blue heavy projector."""
     drive = laser.Projector(power=(500, 500, 1000)).drive
     assert drive[0] == pytest.approx(1.0)
-    assert drive[1] < 1.0 and drive[2] < drive[1]
+    assert drive[2] < drive[1] < 1.0
 
 
 def test_uncalibrated_projector_is_not_white():
